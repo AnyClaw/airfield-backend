@@ -11,6 +11,7 @@ import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 
 fun Application.configurePlaneCatalogRoutes(planeRepository: PlanesRepository, rentalRepository: RentalRepository) {
@@ -51,6 +52,13 @@ fun Application.configurePlaneCatalogRoutes(planeRepository: PlanesRepository, r
                 val rental = rentalRepository.create(userId, planeId)
 
                 call.respond(rental.toDTO())
+            }
+
+            get("/check") {
+                val principal = call.principal<JWTPrincipal>()
+                val username = principal!!.payload.getClaim("username").asString()
+                val expiresAt = principal.expiresAt?.time?.minus(System.currentTimeMillis())
+                call.respondText("Hello, $username! Token is expired at $expiresAt ms.")
             }
         }
     }
