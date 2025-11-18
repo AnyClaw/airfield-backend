@@ -16,10 +16,30 @@ import io.ktor.server.routing.*
 
 fun Application.configurePlaneCatalogRoutes(planeRepository: PlanesRepository, rentalRepository: RentalRepository) {
     routing {
-        get("/planes") {
-            val planes = planeRepository.getAllPlanes()
-            println("Called")
-            call.respond(planes)
+        route("/planes") {
+            get {
+                val planes = planeRepository.getAllPlanes()
+                println("Called")
+                call.respond(planes)
+            }
+
+            get("/{id}") {
+                val planeId = call.parameters["id"]
+
+                if (planeId == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Id not found")
+                    return@get
+                }
+
+                val plane = planeRepository.findById(planeId.toInt())
+
+                if (plane == null) {
+                    call.respond(HttpStatusCode.NotFound, "Plane with id=$planeId not found")
+                    return@get
+                }
+
+                call.respond(plane)
+            }
         }
 
         authenticate("auth-jwt") {
