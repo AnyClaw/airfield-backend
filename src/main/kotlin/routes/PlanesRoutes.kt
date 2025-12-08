@@ -19,7 +19,6 @@ fun Application.configurePlaneCatalogRoutes(planeRepository: PlanesRepository, r
         route("/planes") {
             get {
                 val planes = planeRepository.getAllPlanes()
-                println("Called")
                 call.respond(planes)
             }
 

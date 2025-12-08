@@ -5,14 +5,12 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.example.plugins.configureDatabases
 import com.example.plugins.configureRouting
 import com.example.plugins.configureSerialization
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpMethod
+import com.example.plugins.configureCors
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
-import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.response.respond
 
 fun main(args: Array<String>) {
@@ -30,10 +28,10 @@ fun Application.module() {
             realm = myRealm
             verifier(
                 JWT
-                .require(Algorithm.HMAC256(secret))
-                .withAudience(audience)
-                .withIssuer(issuer)
-                .build())
+                    .require(Algorithm.HMAC256(secret))
+                    .withAudience(audience)
+                    .withIssuer(issuer)
+                    .build())
             validate { credential -> // доп проверка полезной нагрузки
                 if (credential.payload.getClaim("username").asString() != "") {
                     JWTPrincipal(credential.payload)
@@ -47,21 +45,8 @@ fun Application.module() {
         }
     }
 
-    install(CORS) {
-        allowMethod(HttpMethod.Options)
-        allowMethod(HttpMethod.Put)
-        allowMethod(HttpMethod.Delete)
-        allowMethod(HttpMethod.Patch)
-        allowMethod(HttpMethod.Get)
-        allowMethod(HttpMethod.Post)
-        allowHeader(HttpHeaders.Authorization)
-        allowHeader(HttpHeaders.ContentType)
-        allowHeader("X-Requested-With")
-
-        allowHost("localhost:5173")
-    }
-
     configureSerialization()
     configureDatabases()
     configureRouting()
+    configureCors()
 }
