@@ -1,5 +1,6 @@
 package com.example.db.tables
 
+import com.example.enums.Condition
 import com.example.enums.RentalStatus
 import com.example.enums.UserRole
 import org.jetbrains.exposed.dao.id.IntIdTable
@@ -10,6 +11,12 @@ object PlanesTable : IntIdTable("planes") {
     val tankCapacity = float("tank_capacity")
     val fuel = float("fuel")
     val isAvailable = bool("is_available")
+    val rating = float("rating")
+    val rentalCost = double("rental_cost")
+    val fuelConsumption = float("fuel_consumption")
+    val maintenanceCost = float("maintenance_cost")
+    val condition = enumerationByName<Condition>("condition", 20)
+    val mileage = float("mileage")
 }
 
 object UsersTable : IntIdTable("users") {

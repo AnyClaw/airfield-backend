@@ -18,7 +18,7 @@ class JwtService(
             .withClaim("username", user.name)
             .withClaim("login", user.login)
             .withClaim("role", user.role.name)
-            .withExpiresAt(Date(System.currentTimeMillis() + 60000))
+            .withExpiresAt(Date(System.currentTimeMillis() + 60000*10))
             .sign(Algorithm.HMAC256(secret))
     }
 }

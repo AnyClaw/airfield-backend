@@ -6,6 +6,9 @@ import com.example.repositories.UsersRepository
 import com.example.services.JwtService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
@@ -51,8 +54,29 @@ fun Application.configureAuthRoutes(repository: UsersRepository) {
             call.respond(HttpStatusCode.Created)
         }
 
+        authenticate("auth-jwt") {
+            get("/profile") {
+                val principal = call.principal<JWTPrincipal>()!!
+                val userId = principal.payload.getClaim("id").asInt()
+
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "Invalid token")
+                    return@get
+                }
+
+                val user = repository.findById(userId)
+
+                if (user == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "Invalid token")
+                    return@get
+                }
+
+                call.respond(user)
+            }
+        }
+
         get("/encrypt/{pass}") {
-            call.respond(BCrypt.hashpw(call.parameters["pass"]?:"", BCrypt.gensalt()))
+            call.respond(BCrypt.hashpw(call.parameters["pass"] ?: "", BCrypt.gensalt()))
         }
     }
 }
