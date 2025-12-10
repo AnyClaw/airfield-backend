@@ -1,14 +1,12 @@
 package com.example.routes
 
 import com.example.db.dto.UserLoginDTO
-import com.example.db.dto.UserRegisterDTO
+import com.example.db.dto.PilotRegisterDTO
+import com.example.repositories.PilotRepository
 import com.example.repositories.UsersRepository
 import com.example.services.JwtService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
@@ -16,11 +14,11 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import org.mindrot.jbcrypt.BCrypt
 
-fun Application.configureAuthRoutes(repository: UsersRepository) {
+fun Application.configureAuthRoutes(userRepository: UsersRepository, pilotRepository: PilotRepository) {
     routing {
         post("/login") {
             val credentials = call.receive<UserLoginDTO>()
-            val userAuthData = repository.findAuthData(credentials.login)
+            val userAuthData = userRepository.findAuthData(credentials.login)
 
             if (userAuthData == null) {
                 call.respond(HttpStatusCode.Unauthorized, "No such user")
@@ -41,38 +39,23 @@ fun Application.configureAuthRoutes(repository: UsersRepository) {
         }
 
         post("/register") {
-            val credentials = call.receive<UserRegisterDTO>()
+            val credentials = call.receive<PilotRegisterDTO>()
 
-            if (repository.findAuthData(credentials.login) != null) {
+            if (userRepository.findAuthData(credentials.login) != null) {
                 call.respond(HttpStatusCode.Conflict, "User with this login already exists")
                 return@post
             }
 
             val hashedPassword = BCrypt.hashpw(credentials.password, BCrypt.gensalt())
-            repository.createUser(UserRegisterDTO(credentials.username, credentials.login, hashedPassword))
+            userRepository.createUser(PilotRegisterDTO(
+                credentials.username,
+                credentials.login,
+                hashedPassword,
+                credentials.license,
+                credentials.mileage
+            ))
 
             call.respond(HttpStatusCode.Created)
-        }
-
-        authenticate("auth-jwt") {
-            get("/profile") {
-                val principal = call.principal<JWTPrincipal>()!!
-                val userId = principal.payload.getClaim("id").asInt()
-
-                if (userId == null) {
-                    call.respond(HttpStatusCode.Unauthorized, "Invalid token")
-                    return@get
-                }
-
-                val user = repository.findById(userId)
-
-                if (user == null) {
-                    call.respond(HttpStatusCode.Unauthorized, "Invalid token")
-                    return@get
-                }
-
-                call.respond(user)
-            }
         }
 
         get("/encrypt/{pass}") {

@@ -1,10 +1,12 @@
 package com.example.repositories
 
+import com.example.db.dao.PilotDAO
 import com.example.db.dao.UserDAO
 import com.example.db.suspendTransaction
 import com.example.db.tables.UsersTable
-import com.example.db.dto.UserRegisterDTO
+import com.example.db.dto.PilotRegisterDTO
 import com.example.models.User
+import java.math.BigDecimal
 
 class UsersRepository {
     suspend fun findById(id: Int): User? = suspendTransaction {
@@ -17,11 +19,16 @@ class UsersRepository {
             ?.let { dao -> Pair(dao.toModel(), dao.password) }
     }
 
-    suspend fun createUser(user: UserRegisterDTO) = suspendTransaction {
-        UserDAO.new {
-            this.username = user.username
-            this.login = user.login
-            this.password = user.password
+    suspend fun createUser(user: PilotRegisterDTO) = suspendTransaction {
+        PilotDAO.new {
+            this.user = UserDAO.new {
+                this.username = user.username
+                this.login = user.login
+                this.password = user.password
+            }
+            this.license = user.license
+            this.mileage = user.mileage
+            this.balance = BigDecimal(0)
         }
         return@suspendTransaction
     }

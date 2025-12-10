@@ -27,6 +27,13 @@ object UsersTable : IntIdTable("users") {
         .default(UserRole.PILOT)
 }
 
+object PilotTable : IntIdTable("pilot") {
+    val user = reference("id_user", UsersTable)
+    val license = varchar("license", 50)
+    val mileage = float("mileage")
+    val balance = decimal("balance", 10, 2)
+}
+
 object RentalsTable : IntIdTable("rentals") {
     val user = reference("id_user", UsersTable)
     val plane = reference("id_plane", PlanesTable)
