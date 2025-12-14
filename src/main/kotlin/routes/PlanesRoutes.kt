@@ -1,7 +1,8 @@
 package com.example.routes
 
-import com.example.db.dto.PlaneRentalDTO
+import com.example.db.dto.RentalQueryDTO
 import com.example.enums.UserRole
+import com.example.repositories.MapRepository
 import com.example.repositories.PlanesRepository
 import com.example.repositories.RentalRepository
 import io.ktor.http.HttpStatusCode
@@ -14,7 +15,10 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 
-fun Application.configurePlaneCatalogRoutes(planeRepository: PlanesRepository, rentalRepository: RentalRepository) {
+fun Application.configurePlaneCatalogRoutes(
+    planeRepository: PlanesRepository,
+    rentalRepository: RentalRepository,
+) {
     routing {
         route("/planes") {
             get {
@@ -50,8 +54,10 @@ fun Application.configurePlaneCatalogRoutes(planeRepository: PlanesRepository, r
                     return@post
                 }
 
-                val planeId = call.receive<PlaneRentalDTO>().id
-                val plane = planeRepository.findById(planeId)
+                val rentalQuery = call.receive<RentalQueryDTO>()
+                println(rentalQuery)
+
+                val plane = planeRepository.findById(rentalQuery.planeId)
 
                 if (plane == null) {
                     call.respond(HttpStatusCode.NotFound, "No such plane")
@@ -67,10 +73,8 @@ fun Application.configurePlaneCatalogRoutes(planeRepository: PlanesRepository, r
                 plane.isAvailable = false
                 planeRepository.save(plane)
 
-                val userId = principal.payload.getClaim("id").asInt()!!
-                val rental = rentalRepository.create(userId, planeId)
-
-                call.respond(rental.toDTO())
+                val rental = rentalRepository.create(rentalQuery)
+                call.respond(rental)
             }
 
             get("/check") {

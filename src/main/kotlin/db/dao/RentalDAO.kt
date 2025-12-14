@@ -13,7 +13,23 @@ class RentalDAO(id: EntityID<Int>) : IntEntity(id) {
     var plane by PlaneDAO referencedOn RentalsTable.plane
     var startTime by RentalsTable.startTime
     var endTime by RentalsTable.endTime
+    var arrivalAirport by AirportDAO referencedOn RentalsTable.arrivalAirport
+    var departureAirport by AirportDAO referencedOn RentalsTable.departureAirport
+    var isMaintenance by RentalsTable.isMaintenance
+    var maintenanceCost by RentalsTable.maintenanceCost
+    var refuelCost by RentalsTable.refuelCost
     var status by RentalsTable.status
 
-    fun toModel() = Rental(pilot.toModel(), plane.toModel(), startTime, endTime, status)
+    fun toModel() = Rental(
+        pilot.toModel(),
+        plane.toModel(),
+        startTime,
+        endTime,
+        arrivalAirport.toModel(),
+        departureAirport.toModel(),
+        isMaintenance,
+        maintenanceCost,
+        refuelCost,
+        status
+    )
 }

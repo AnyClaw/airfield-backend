@@ -6,6 +6,24 @@ import com.example.enums.UserRole
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.javatime.datetime
 
+object WaypointTable : IntIdTable("waypoint") {
+    val name = varchar("name", 20)
+    val x = float("x")
+    val y = float("y")
+}
+
+object AirportTable : IntIdTable("airport") {
+    val name = varchar("name", 20)
+    val icao = varchar("icao", 5)
+    val waypoint = reference("id_waypoint", WaypointTable)
+}
+
+object RouteTable : IntIdTable("route") {
+    val fromWaypoint = reference("id_from_waypoint", WaypointTable)
+    val toWaypoint = reference("id_to_waypoint", WaypointTable)
+    val distance = float("distance")
+}
+
 object PlanesTable : IntIdTable("planes") {
     val name = varchar("name", 50)
     val tankCapacity = float("tank_capacity")
@@ -39,5 +57,16 @@ object RentalsTable : IntIdTable("rentals") {
     val plane = reference("id_plane", PlanesTable)
     val startTime = datetime("start_time")
     val endTime = datetime("end_time").nullable()
+    val arrivalAirport = reference("id_arrival_airport", AirportTable)
+    val departureAirport = reference("id_departure_airport", AirportTable)
+    val isMaintenance = bool("is_maintenance")
+    val maintenanceCost = integer("maintenance_cost")
+    val refuelCost = integer("refuel_cost")
     val status = enumerationByName<RentalStatus>("status", 10)
+}
+
+object RentalFlightTable : IntIdTable("rental_flight") {
+    val rental = reference("id_rental", RentalsTable)
+    val route = reference("id_route", RouteTable)
+    val stage = integer("stage")
 }

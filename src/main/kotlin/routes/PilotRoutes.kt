@@ -25,7 +25,6 @@ fun Application.configurePilotRoutes(repository: PilotRepository) {
                     }
 
                     val user = repository.findByUserId(userId)
-                    println(user)
 
                     if (user == null) {
                         call.respond(HttpStatusCode.Unauthorized, "Invalid token")
