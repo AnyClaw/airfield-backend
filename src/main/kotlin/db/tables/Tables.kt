@@ -59,10 +59,11 @@ object RentalsTable : IntIdTable("rentals") {
     val endTime = datetime("end_time").nullable()
     val arrivalAirport = reference("id_arrival_airport", AirportTable)
     val departureAirport = reference("id_departure_airport", AirportTable)
+    val currentStage = integer("current_stage").default(0)
     val isMaintenance = bool("is_maintenance")
     val maintenanceCost = integer("maintenance_cost")
     val refuelCost = integer("refuel_cost")
-    val status = enumerationByName<RentalStatus>("status", 10)
+    val status = enumerationByName<RentalStatus>("status", 10).default(RentalStatus.RENTED)
 }
 
 object RentalFlightTable : IntIdTable("rental_flight") {

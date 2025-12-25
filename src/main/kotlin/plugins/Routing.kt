@@ -9,13 +9,16 @@ import com.example.routes.configureAuthRoutes
 import com.example.routes.configureMapRoutes
 import com.example.routes.configurePilotRoutes
 import com.example.routes.configurePlaneCatalogRoutes
+import com.example.routes.configureRentalRoutes
 import io.ktor.server.application.Application
 
 fun Application.configureRouting() {
     val pilotRepository = PilotRepository()
+    val planesRepository = PlanesRepository()
 
     configureAuthRoutes(UsersRepository(), pilotRepository)
-    configurePlaneCatalogRoutes(PlanesRepository(), RentalRepository())
+    configurePlaneCatalogRoutes(PlanesRepository())
     configurePilotRoutes(PilotRepository())
     configureMapRoutes(MapRepository())
+    configureRentalRoutes(planesRepository, RentalRepository(), pilotRepository)
 }

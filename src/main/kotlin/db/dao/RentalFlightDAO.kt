@@ -13,5 +13,9 @@ class RentalFlightDAO(id: EntityID<Int>) : IntEntity(id) {
     var route by RouteDAO referencedOn RentalFlightTable.route
     var stage by RentalFlightTable.stage
 
-    fun toModel() = RentalFlight(rental.toModel(), route.toModel(), stage)
+    fun toModel() = RentalFlight(
+        rental.toModel(),
+        route.toModel(),
+        stage
+    )
 }

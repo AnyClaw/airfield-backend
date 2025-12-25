@@ -15,10 +15,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 
-fun Application.configurePlaneCatalogRoutes(
-    planeRepository: PlanesRepository,
-    rentalRepository: RentalRepository,
-) {
+fun Application.configurePlaneCatalogRoutes(planeRepository: PlanesRepository) {
     routing {
         route("/planes") {
             get {
@@ -42,46 +39,6 @@ fun Application.configurePlaneCatalogRoutes(
                 }
 
                 call.respond(plane)
-            }
-        }
-
-        authenticate("auth-jwt") {
-            post("/rent") {
-                val principal = call.principal<JWTPrincipal>()!!
-
-                if (!principal.payload.getClaim("role").asString().equals(UserRole.PILOT.name)) {
-                    call.respond(HttpStatusCode.Forbidden, "You're not a pilot!")
-                    return@post
-                }
-
-                val rentalQuery = call.receive<RentalQueryDTO>()
-                println(rentalQuery)
-
-                val plane = planeRepository.findById(rentalQuery.planeId)
-
-                if (plane == null) {
-                    call.respond(HttpStatusCode.NotFound, "No such plane")
-                    return@post
-                }
-
-                //FIXME Вернуть нормальный статус
-                if (!plane.isAvailable) {
-                    call.respond(HttpStatusCode.Forbidden, "Plane is already rented!")
-                    return@post
-                }
-
-                plane.isAvailable = false
-                planeRepository.save(plane)
-
-                val rental = rentalRepository.create(rentalQuery)
-                call.respond(rental)
-            }
-
-            get("/check") {
-                val principal = call.principal<JWTPrincipal>()
-                val username = principal!!.payload.getClaim("username").asString()
-                val expiresAt = principal.expiresAt?.time?.minus(System.currentTimeMillis())
-                call.respondText("Hello, $username! Token is expired at $expiresAt ms.")
             }
         }
     }
