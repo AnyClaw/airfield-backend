@@ -28,8 +28,8 @@ object PlanesTable : IntIdTable("planes") {
     val name = varchar("name", 50)
     val tankCapacity = float("tank_capacity")
     val fuel = float("fuel")
-    val isAvailable = bool("is_available")
-    val rating = float("rating")
+    val isAvailable = bool("is_available").default(true)
+    val rating = float("rating").default(5f)
     val rentalCost = double("rental_cost")
     val fuelConsumption = float("fuel_consumption")
     val maintenanceCost = float("maintenance_cost")
@@ -64,6 +64,7 @@ object RentalsTable : IntIdTable("rentals") {
     val maintenanceCost = integer("maintenance_cost")
     val refuelCost = integer("refuel_cost")
     val status = enumerationByName<RentalStatus>("status", 10).default(RentalStatus.RENTED)
+    val totalCost = long("total_cost").default(0)
 }
 
 object RentalFlightTable : IntIdTable("rental_flight") {

@@ -2,7 +2,6 @@ package com.example.routes
 
 import com.example.db.dto.UserLoginDTO
 import com.example.db.dto.PilotRegisterDTO
-import com.example.repositories.PilotRepository
 import com.example.repositories.UsersRepository
 import com.example.services.JwtService
 import io.ktor.http.HttpStatusCode
@@ -14,7 +13,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import org.mindrot.jbcrypt.BCrypt
 
-fun Application.configureAuthRoutes(userRepository: UsersRepository, pilotRepository: PilotRepository) {
+fun Application.configureAuthRoutes(userRepository: UsersRepository) {
     routing {
         post("/login") {
             val credentials = call.receive<UserLoginDTO>()

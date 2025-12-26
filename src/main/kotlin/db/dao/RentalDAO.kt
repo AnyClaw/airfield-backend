@@ -20,6 +20,7 @@ class RentalDAO(id: EntityID<Int>) : IntEntity(id) {
     var maintenanceCost by RentalsTable.maintenanceCost
     var refuelCost by RentalsTable.refuelCost
     var status by RentalsTable.status
+    var totalCost by RentalsTable.totalCost
 
     fun toModel() = Rental(
         id.value,
@@ -33,6 +34,7 @@ class RentalDAO(id: EntityID<Int>) : IntEntity(id) {
         isMaintenance,
         maintenanceCost,
         refuelCost,
-        status
+        status,
+        totalCost
     )
 }

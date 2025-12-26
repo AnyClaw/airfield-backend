@@ -21,5 +21,6 @@ data class RentalDTO (
     val isMaintenance: Boolean,
     val maintenanceCost: Int,
     val refuelCost: Int,
-    val status: RentalStatus
+    val status: RentalStatus,
+    val totalCost: Long
 )

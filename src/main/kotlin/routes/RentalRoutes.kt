@@ -1,6 +1,7 @@
 package com.example.routes
 
 import com.example.db.dto.RentalQueryDTO
+import com.example.enums.Condition
 import com.example.enums.RentalStatus
 import com.example.enums.UserRole
 import com.example.repositories.PilotRepository
@@ -15,6 +16,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 
 fun Application.configureRentalRoutes(
@@ -48,7 +50,7 @@ fun Application.configureRentalRoutes(
 
                 val rental = rentalRepository.create(rentalQuery)
                 plane.isAvailable = false
-                planeRepository.save(plane)
+                planeRepository.update(plane)
 
                 call.respond(rental)
             }
@@ -73,42 +75,145 @@ fun Application.configureRentalRoutes(
                 call.respond(rentals)
             }
 
-            get("/rental/{id}") {
-                val rentalId = call.parameters["id"]
+            route("/rental") {
+                get("/{id}") {
+                    val rentalId = call.parameters["id"]
 
-                if (rentalId == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@get
+                    if (rentalId == null) {
+                        call.respond(HttpStatusCode.BadRequest)
+                        return@get
+                    }
+
+                    val rental = rentalRepository.findById(rentalId.toInt())
+                    val principal = call.principal<JWTPrincipal>()!!
+
+                    if (principal.payload.getClaim("id").asInt() != rental.pilot.id) {
+                        call.respond(HttpStatusCode.Forbidden)
+                        return@get
+                    }
+
+                    call.respond(rental)
                 }
 
-                val rental = rentalRepository.findById(rentalId.toInt())
-                val principal = call.principal<JWTPrincipal>()!!
+                post ("/takeoff/{id}") {
+                    val rentalId = call.parameters["id"]
 
-                if (principal.payload.getClaim("id").asInt() != rental.pilot.id) {
-                    call.respond(HttpStatusCode.Forbidden)
-                    return@get
+                    if (rentalId == null) {
+                        call.respond(HttpStatusCode.BadRequest)
+                        return@post
+                    }
+
+                    val rental = rentalRepository.findById(rentalId.toInt())
+                    val principal = call.principal<JWTPrincipal>()!!
+
+                    if (principal.payload.getClaim("id").asInt() != rental.pilot.id) {
+                        call.respond(HttpStatusCode.Forbidden)
+                        return@post
+                    }
+
+                    val plane = planeRepository.findById(rental.plane.id)
+
+                    if (plane == null) {
+                        call.respond(HttpStatusCode.NotFound, "No such plane")
+                        return@post
+                    }
+
+                    plane.fuel += rental.refuelCost / 100
+                    if (rental.isMaintenance) plane.condition = Condition.EXCELLENT
+
+                    planeRepository.update(plane)!!
+
+                    call.respond(rentalRepository.changeStatus(rental.id, RentalStatus.ACTIVE))
                 }
 
-                call.respond(rental)
-            }
+                post("/next/{id}") {
+                    val rentalId = call.parameters["id"]
 
-            post ("/rental/start/{id}") {
-                val rentalId = call.parameters["id"]
+                    if (rentalId == null) {
+                        call.respond(HttpStatusCode.BadRequest)
+                        return@post
+                    }
 
-                if (rentalId == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@post
+                    val rental = rentalRepository.findById(rentalId.toInt())
+                    val principal = call.principal<JWTPrincipal>()!!
+
+                    if (principal.payload.getClaim("id").asInt() != rental.pilot.id) {
+                        call.respond(HttpStatusCode.Forbidden)
+                        return@post
+                    }
+
+                    if (rental.currentStage == rental.route.size) {
+                        call.respond(HttpStatusCode.BadRequest, "It is final stage")
+                        return@post
+                    }
+
+                    val plane = planeRepository.findById(rental.plane.id)
+
+                    if (plane == null) {
+                        call.respond(HttpStatusCode.NotFound, "No such plane")
+                        return@post
+                    }
+
+                    plane.fuel -= rental.route[rental.currentStage].distance * plane.fuelConsumption / 1000
+                    planeRepository.update(plane)!!
+
+                    call.respond(rentalRepository.nextStage(rental.id))
                 }
 
-                val rental = rentalRepository.findById(rentalId.toInt())
-                val principal = call.principal<JWTPrincipal>()!!
+                post("/land/{id}") {
+                    val rentalId = call.parameters["id"]
 
-                if (principal.payload.getClaim("id").asInt() != rental.pilot.id) {
-                    call.respond(HttpStatusCode.Forbidden)
-                    return@post
+                    if (rentalId == null) {
+                        call.respond(HttpStatusCode.BadRequest)
+                        return@post
+                    }
+
+                    val rental = rentalRepository.findById(rentalId.toInt())
+                    val principal = call.principal<JWTPrincipal>()!!
+
+                    if (principal.payload.getClaim("id").asInt() != rental.pilot.id) {
+                        call.respond(HttpStatusCode.Forbidden)
+                        return@post
+                    }
+
+                    val plane = planeRepository.findById(rental.plane.id)
+
+                    if (plane == null) {
+                        call.respond(HttpStatusCode.NotFound, "No such plane")
+                        return@post
+                    }
+
+                    plane.condition = when (plane.condition) {
+                        Condition.EXCELLENT -> Condition.GOOD
+                        Condition.GOOD -> Condition.FAIR
+                        Condition.FAIR -> Condition.POOR
+                        else -> Condition.POOR
+                    }
+
+                    plane.isAvailable = true
+                    planeRepository.update(plane)!!
+
+                    call.respond(rentalRepository.finishFlight(rental.id))
                 }
 
-                call.respond(rentalRepository.changeStatus(rental.id, RentalStatus.ACTIVE))
+                post("/pay/{id}") {
+                    val rentalId = call.parameters["id"]
+
+                    if (rentalId == null) {
+                        call.respond(HttpStatusCode.BadRequest)
+                        return@post
+                    }
+
+                    val rental = rentalRepository.findById(rentalId.toInt())
+                    val principal = call.principal<JWTPrincipal>()!!
+
+                    if (principal.payload.getClaim("id").asInt() != rental.pilot.id) {
+                        call.respond(HttpStatusCode.Forbidden)
+                        return@post
+                    }
+
+                    call.respond(rentalRepository.changeStatus(rental.id, RentalStatus.COMPLETED))
+                }
             }
         }
     }

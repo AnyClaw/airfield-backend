@@ -17,7 +17,8 @@ class Rental(
     val isMaintenance: Boolean,
     val maintenanceCost: Int,
     val refuelCost: Int,
-    var status: RentalStatus
+    var status: RentalStatus,
+    var totalCost: Long
 ){
     fun finish() {
         endTime = LocalDateTime.now()

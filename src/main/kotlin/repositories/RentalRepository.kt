@@ -14,11 +14,67 @@ import com.example.db.tables.RentalFlightTable
 import com.example.db.tables.RentalsTable
 import com.example.enums.RentalStatus
 import com.example.models.Rental
+import java.time.Duration
 import java.time.LocalDateTime
+import kotlin.math.abs
 
 class RentalRepository {
-    suspend fun findAllByUserId(id: Int): List<RentalShortDTO> = suspendTransaction {
-        RentalDAO.find { RentalsTable.user eq id }.map { it.toModel().toShortDto() }
+    suspend fun findAll(): List<RentalDTO> = suspendTransaction {
+        RentalDAO.all()
+            .map { rental ->
+                val rentalFlights = RentalFlightDAO.find {
+                    RentalFlightTable.rental eq rental.id
+                }
+                    .sortedBy { it.stage }
+                    .map { it.route.toModel() }
+
+                RentalDTO(
+                    id = rental.id.value,
+                    pilot = rental.pilot.toModel(),
+                    plane = rental.plane.toModel(),
+                    startTime = rental.startTime.toString(),
+                    endTime = rental.endTime?.toString(),
+                    arrivalAirport = rental.arrivalAirport.toModel(),
+                    departureAirport = rental.departureAirport.toModel(),
+                    currentStage = rental.currentStage,
+                    route = rentalFlights,
+                    isMaintenance = rental.isMaintenance,
+                    maintenanceCost = rental.maintenanceCost,
+                    refuelCost = rental.refuelCost,
+                    status = rental.status,
+                    totalCost = rental.totalCost
+                )
+            }
+    }
+
+    suspend fun findAllByUserId(id: Int): List<RentalDTO> = suspendTransaction {
+        RentalDAO.find {
+            RentalsTable.user eq id
+        }
+            .map { rental ->
+                val rentalFlights = RentalFlightDAO.find {
+                    RentalFlightTable.rental eq rental.id
+                }
+                    .sortedBy { it.stage }
+                    .map { it.route.toModel() }
+
+                RentalDTO(
+                    id = rental.id.value,
+                    pilot = rental.pilot.toModel(),
+                    plane = rental.plane.toModel(),
+                    startTime = rental.startTime.toString(),
+                    endTime = rental.endTime?.toString(),
+                    arrivalAirport = rental.arrivalAirport.toModel(),
+                    departureAirport = rental.departureAirport.toModel(),
+                    currentStage = rental.currentStage,
+                    route = rentalFlights,
+                    isMaintenance = rental.isMaintenance,
+                    maintenanceCost = rental.maintenanceCost,
+                    refuelCost = rental.refuelCost,
+                    status = rental.status,
+                    totalCost = rental.totalCost
+                )
+            }
     }
 
     suspend fun findById(id: Int): RentalDTO = suspendTransaction {
@@ -42,7 +98,43 @@ class RentalRepository {
             rental.isMaintenance,
             rental.maintenanceCost,
             rental.refuelCost,
-            rental.status
+            rental.status,
+            rental.totalCost
+        )
+    }
+
+    suspend fun finishFlight(id: Int): RentalDTO = suspendTransaction {
+        val baseRental = RentalDAO.findByIdAndUpdate(id) {
+            it.status = RentalStatus.AWAITING_PAYMENT
+            it.endTime = LocalDateTime.now()
+            it.totalCost = abs(Duration.between(it.endTime, it.startTime).toMillis()) +
+                    it.refuelCost + it.maintenanceCost + it.plane.rentalCost.toInt()
+        }!!
+        val rentalFlight = RentalFlightDAO
+            .find { RentalFlightTable.rental eq baseRental.id.value }
+            .map { it.toModel() }
+            .sortedBy { it.stage }
+
+        val rental = rentalFlight[0].rental
+
+        println(abs(Duration.between(rental.endTime, rental.startTime).toMillis()))
+        println("${rental.refuelCost}  ${rental.maintenanceCost}  ${rental.plane.rentalCost.toInt()}")
+
+        RentalDTO(
+            rental.id,
+            rental.pilot,
+            rental.plane,
+            rental.startTime.toString(),
+            rental.endTime.toString(),
+            rental.arrivalAirport,
+            rental.departureAirport,
+            rental.currentStage,
+            rentalFlight.map { it.route },
+            rental.isMaintenance,
+            rental.maintenanceCost,
+            rental.refuelCost,
+            rental.status,
+            rental.totalCost
         )
     }
 
@@ -68,7 +160,35 @@ class RentalRepository {
             rental.isMaintenance,
             rental.maintenanceCost,
             rental.refuelCost,
-            rental.status
+            rental.status,
+            rental.totalCost
+        )
+    }
+
+    suspend fun nextStage(id: Int): RentalDTO = suspendTransaction {
+        val baseRental = RentalDAO.findByIdAndUpdate(id) { it.currentStage++ }!!
+        val rentalFlight = RentalFlightDAO
+            .find { RentalFlightTable.rental eq baseRental.id.value }
+            .map { it.toModel() }
+            .sortedBy { it.stage }
+
+        val rental = rentalFlight[0].rental
+
+        RentalDTO(
+            rental.id,
+            rental.pilot,
+            rental.plane,
+            rental.startTime.toString(),
+            rental.endTime.toString(),
+            rental.arrivalAirport,
+            rental.departureAirport,
+            rental.currentStage,
+            rentalFlight.map { it.route },
+            rental.isMaintenance,
+            rental.maintenanceCost,
+            rental.refuelCost,
+            rental.status,
+            rental.totalCost
         )
     }
 
@@ -108,7 +228,8 @@ class RentalRepository {
             baseRental.isMaintenance,
             baseRental.maintenanceCost,
             baseRental.refuelCost,
-            baseRental.status
+            baseRental.status,
+            baseRental.totalCost
         )
     }
 }
